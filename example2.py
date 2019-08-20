@@ -1,11 +1,20 @@
-import math
-A = 10
-print("hello")
+name = "Tetra"
+title = "ITRC 메이커톤 2019"
 
-def myfunc(a,b):
-    return a*b
+num1 = 10
+num2 = 30
 
-for i in [1,2,3]:
-    print(i)
+def myfunnc(a, b):
+  return a + b
 
-print(A)
+def learnCodeByCODI():
+  return "즐거운 메이커톤"
+
+learnCodeByCODI()
+
+for index in range(0,5,1):
+    print(index)
+    print(name)
+    print(title)
+
+myfunnc(num1, num2)

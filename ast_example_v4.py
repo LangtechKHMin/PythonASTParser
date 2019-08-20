@@ -13,15 +13,12 @@ def main():
     # Error 없는 코드로 재분석
     code = AST.astPreproc()
     AST.codeParser(code)
-    AST.pathTracker(True)
+    AST.pathTracker(True, False)
     AST.loopFlagSetter(AST.depth_list, AST.lines)
-
-    print(AST.depth_list[1])
-    print(AST.depth_list[2])
-    print(AST.depth_list[3])
-
-
+    AST.funcFinder(AST.depth_list, AST.lines)
+    AST.pathTracker(True, True)
     AST.finalPath(AST.loop_dict, AST.path)
+
     print("최종 path")
     print(AST.path)
     line_struct = AST.astShow(AST.depth_list, AST.lines)
@@ -38,6 +35,38 @@ def main():
     print(json.dumps(path2json))
     print(len(AST.path), len(path2json))
     print(jsons)
+    print(AST.var_dict)
+
+'''
+    func_dict = {}
+    func = False
+    point = 0
+    for n, d in enumerate(AST.depth_list[1:]):
+        if func == True:
+            if d[0] == point:
+                end = AST.lines[n-1]
+                func_dict[name] = [start,end]
+                func = False
+                if d[1] == 'FunctionDef':
+                    #print("FUNCTION",n,d)
+                    point = d[0]
+                    name = AST.depth_list[n+2][2]
+                    start = AST.lines[n]
+                    func = True
+            else:
+                continue
+        elif d[1] == 'FunctionDef':
+            #print("FUNCTION",n,d)
+            point = d[0]
+            name = AST.depth_list[n+2][2]
+            start = AST.lines[n]
+            func = True
+        else:
+            continue
+    print(func_dict)
+    print(AST.fun_dict)
+    print(AST.var_dict)
+'''
 
 
 
@@ -58,6 +87,7 @@ class astParser():
             : debugging line track
         (5) self.tree
             : code와 dump의 중간 단계 ast.parse 모듈의 output
+        (6) self.func_dict
 
     [2] Method
         (1) astErrorCheck(self)
@@ -84,6 +114,8 @@ class astParser():
             : loop 부분을 검출하여 path에 반영하는 코드
         (12) ast2json(self, line_struct)
             : 각 라인의 구조를 딕셔너리형식으로 변환하여, json으로 최종 변환 및 출력
+        (13) funcFinder(self, Depth_list, Lines)
+            : depth리스트와 라인을 통해 function 선언부의 위치를 self.func_dict에 저장
     '''
     import re, ast, sys, traceback
     def __init__(self, codes, depth):
@@ -294,7 +326,7 @@ class astParser():
             #print(a)
             #print()
 
-    def pathTracker(self, short_path = True):
+    def pathTracker(self, short_path = True, func_dict = False):
         self.var_dict = {} # v2
         self.fun_dict = {} # v2
         self.path = [1]
@@ -315,9 +347,6 @@ class astParser():
                     N -= 1
 
             self.lines.append(line)
-            ###################################
-            # loop 처음과 끝을 찾아서 반복시키기 # loop_dict = {[start line : final line]}
-            ###################################
 
             if short_path:
             #print(str(line)+" : ", end = '')
@@ -328,14 +357,19 @@ class astParser():
 
             if l[1] == 'Store':
                 #print('변수 저장',target_list[n-1][2], end = '')
-                self.var_dict[target_list[n-1][2]] = line
-            elif l[1] == 'FunctionDef':
-                self.var_dict[target_list[n+1][2]] = line
+                self.var_dict[target_list[n-1][2]] = [line,line]
+            #elif l[1] == 'FunctionDef':
+                #self.var_dict[target_list[n+1][2]] = [line,line]
             elif l[1] == 'Load':
                 #print("변수 또는 함수 불러오기", target_list[n-1][2], end = '')
+                if func_dict == True:
+                    if target_list[n-1][2] in self.func_dict:
+                        for func in range(int(self.func_dict[target_list[n-1][2]][0]),int(self.func_dict[target_list[n-1][2]][1])+1):
+                            self.path.append(str(func))
                 if target_list[n-1][2] in self.var_dict:
                     #print('=>', self.var_dict[target_list[n-1][2]], '로 이동', end = '')
-                    self.path.append(self.var_dict[target_list[n-1][2]])
+                    for var in range(int(self.var_dict[target_list[n-1][2]][0]),int(self.var_dict[target_list[n-1][2]][1])+1):
+                        self.path.append(str(var))
                 else:
                     self.fun_dict[target_list[n-1][2]] = line
                     #print("=> 내장 함수 호출", end = '')
@@ -371,6 +405,35 @@ class astParser():
         buf[-1] += " : "+ DepthList[-1][2].split(", ")[0]+"}"*(DepthList[-1][0])
 
         return buf
+
+    def funcFinder(self, Depth_list, Lines):
+        self.func_dict = {}
+        func = False
+        point = 0
+        for n, d in enumerate(Depth_list[1:]):
+            if func == True:
+                if d[0] == point:
+                    end = Lines[n-1]
+                    self.func_dict[name] = [start,end]
+                    func = False
+                    if d[1] == 'FunctionDef':
+                        #print("FUNCTION",n,d)
+                        point = d[0]
+                        name = Depth_list[n+2][2]
+                        start = Lines[n]
+                        func = True
+                else:
+                    continue
+            elif d[1] == 'FunctionDef':
+                #print("FUNCTION",n,d)
+                point = d[0]
+                name = Depth_list[n+2][2]
+                start = Lines[n]
+                func = True
+            else:
+                continue
+        print(self.func_dict)
+
 
     def finalPath(self, loop_point, path):
         path_track, loop_range = [], []
