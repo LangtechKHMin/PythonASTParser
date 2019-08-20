@@ -411,6 +411,7 @@ class astParser():
 
     def ast2json(self, line_struct):
         self.json_dict = {}
+        self.json_list = []
         for n, line in enumerate(line_struct):
             if line == '':
                 continue
@@ -423,7 +424,12 @@ class astParser():
                 self.json_dict[n+1][tmp[0][1:]] = tmp[1][:-1]
 
             print(self.json_dict[n+1])
-        struct_json = json.dumps(self.json_dict)
+
+        for k, v in self.json_dict.items():
+            v["lineno"]=k
+            self.json_list.append(v)
+
+        struct_json = json.dumps(self.json_list)
 
         return struct_json
 
