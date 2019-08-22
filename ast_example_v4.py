@@ -37,6 +37,9 @@ def main():
     print(jsons)
     print(AST.var_dict)
 
+    print(AST.err_dict)
+
+
 '''
     func_dict = {}
     func = False
@@ -275,6 +278,13 @@ class astParser():
         C = C.replace("col_offset=","")
         # , )[abc] => , [abc])
         C = re.sub(r', \)([a-z]+)',r', method(\1', C)
+        # Str(id => Str(Value / Num -> Value
+        C = re.sub(r'Str\(id','Str(Value',C)
+        C = re.sub(r'Num','Value',C)
+
+        C = re.sub(r'arguments\(arg\(id','arguments(arg(argida',C)
+        C = re.sub(r'\, arg\(id',', arg(argidb',C)
+        C = re.sub(r'BinOp\(Name\(id','BinOp(Name(idop',C)
         self.rawcode = C
         return C
 
@@ -439,6 +449,7 @@ class astParser():
         path_track, loop_range = [], []
         pointer = 0
         loop = False
+        loop_exit = 10000
         while True:
             if pointer == len(path):
                 break
@@ -547,7 +558,7 @@ class astParser():
 
 
                 if DepthList[n+4][1] == "Call":
-                    VAR = re.findall(r'(?<=Num\()\d{1,}(?=\,)',DepthList[n+4][2])
+                    VAR = re.findall(r'(?<=Value\()\d{1,}(?=\,)',DepthList[n+4][2])
                     VAR = list(map(int,VAR))
                     #print(VAR)
                     if len(VAR) == 2:
